@@ -1,0 +1,157 @@
+openapi: 3.0.0
+info:
+  title: Movie Theater Booking API
+  version: 1.0.0
+  description: |
+    This API lets users browse movies, view seat availability, make ticket payments, 
+    and cancel reservations. It's based on a standard movie ticket purchase flow.
+
+paths:
+  /movies:
+    get:
+      summary: Get list of available movies and their showtimes
+      responses:
+        '200':
+          description: Returns movie titles and available showtimes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    movie_id:
+                      type: string
+                      example: "mv_001"
+                    title:
+                      type: string
+                      example: "Interstellar"
+                    showtimes:
+                      type: array
+                      items:
+                        type: string
+                      example: ["1:00 PM", "3:30 PM", "6:45 PM"]
+        '404':
+          description: No movies currently available
+
+  /seats:
+    get:
+      summary: Get seat availability for a selected movie and time
+      parameters:
+        - in: query
+          name: movie_id
+          required: true
+          schema:
+            type: string
+          example: "mv_001"
+        - in: query
+          name: showtime
+          required: true
+          schema:
+            type: string
+          example: "3:30 PM"
+      responses:
+        '200':
+          description: List of seat numbers and their status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    seat_number:
+                      type: string
+                      example: "A7"
+                    status:
+                      type: string
+                      enum: [available, booked]
+                      example: "available"
+        '400':
+          description: Missing or invalid movie_id or showtime
+        '404':
+          description: Seats not found for selected showtime
+
+  /payment:
+    post:
+      summary: Make a payment and book selected seats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - movie_id
+                - showtime
+                - seats
+                - payment_method
+                - card_info
+              properties:
+                movie_id:
+                  type: string
+                  example: "mv_001"
+                showtime:
+                  type: string
+                  example: "3:30 PM"
+                seats:
+                  type: array
+                  items:
+                    type: string
+                  example: ["A7", "A8"]
+                payment_method:
+                  type: string
+                  enum: [credit_card, debit_card]
+                  example: "credit_card"
+                card_info:
+                  type: object
+                  properties:
+                    number:
+                      type: string
+                      example: "4111222233334444"
+                    expiry:
+                      type: string
+                      example: "11/25"
+                    cvv:
+                      type: string
+                      example: "123"
+      responses:
+        '200':
+          description: Payment successful and tickets confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payment_status:
+                    type: string
+                    example: "success"
+                  ticket_ids:
+                    type: array
+                    items:
+                      type: string
+                    example: ["tkt_001", "tkt_002"]
+        '400':
+          description: Invalid or missing payment details
+        '402':
+          description: Payment was declined
+        '500':
+          description: Server error during processing
+
+  /reservation/{id}:
+    delete:
+      summary: Cancel a ticket reservation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "res_789"
+      responses:
+        '200':
+          description: Reservation cancelled successfully
+        '400':
+          description: Invalid reservation ID format
+        '404':
+          description: Reservation not found
